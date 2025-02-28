@@ -28,10 +28,11 @@ namespace Cdk
             var api = new ApiGatewayStack(this, lambdaFunction.Function);
             new PipelineStack(this, bucket.Bucket);
 
-            // Outputs for CloudFront, Lambda, and API Gateway
+            // Outputs for CloudFront, Lambda, API Gateway, and S3
             new CfnOutput(this, "CloudFrontURL", new CfnOutputProps { Value = bucket.Distribution.DistributionDomainName });
             new CfnOutput(this, "LambdaFunctionName", new CfnOutputProps { Value = lambdaFunction.Function.FunctionName });
             new CfnOutput(this, "ApiGatewayURL", new CfnOutputProps { Value = api.Api.Url });
+            new CfnOutput(this, "S3BucketURL", new CfnOutputProps { Value = bucket.Bucket.BucketWebsiteUrl });
         }
     }
 }
