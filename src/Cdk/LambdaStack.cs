@@ -14,9 +14,11 @@ namespace Cdk
     public class LambdaStack
     {
         public Function Function { get; }
+        public Function CloudFrontInvalidationFunction { get; }
 
         public LambdaStack(Construct scope, Table table)
         {
+            // Create a Lambda function that interacts with the DynamoDB table
             Function = new Function(scope, "ServerlessProjFunction", new FunctionProps
             {
                 Runtime = Runtime.NODEJS_18_X,

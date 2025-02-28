@@ -13,52 +13,27 @@ namespace Cdk
 {
     public class ApiGatewayStack
     {
-        public RestApi Api { get; }
+        // Need to use RestApiBase instead of RestApi for v1
+        public RestApiBase Api { get; }
 
         public ApiGatewayStack(Construct scope, Function lambdaFunction)
         {
-            Api = new RestApi(scope, "ServerlessProjApi");
+            Api = new RestApi(scope, "ServerlessProjApi", new RestApiProps
+            {
+                DefaultCorsPreflightOptions = new CorsOptions
+                {
+                    AllowOrigins = Cors.ALL_ORIGINS,           // Allow all origins
+                    AllowMethods = Cors.ALL_METHODS,           // Allow all methods (GET, POST, PUT, etc.)
+                    AllowHeaders = new[] { "Content-Type", "X-Amz-Date", "Authorization", "X-Api-Key" } // CORS headers
+                }
+            });
 
             SetupApiGateway(Api, lambdaFunction);
         }
 
-        private void SetupApiGateway(RestApi api, Function lambdaFunction)
+        private void SetupApiGateway(RestApiBase api, Function lambdaFunction)
         {
-            var lambdaIntegration = new LambdaIntegration(lambdaFunction);
-
-            // Create /items resource (only once)
-            var items = api.Root.AddResource("items");
-
-            // Add methods to /items resource with CORS support
-            var options = new MethodOptions
-            {
-                MethodResponses = new[]
-                {
-                    new MethodResponse
-                    {
-                        StatusCode = "200",
-                        ResponseParameters = new Dictionary<string, bool>
-                        {
-                            { "method.response.header.Access-Control-Allow-Origin", true },
-                            { "method.response.header.Access-Control-Allow-Methods", true },
-                            { "method.response.header.Access-Control-Allow-Headers", true }
-                        }
-                    }
-                }
-            };
-
-            items.AddMethod("GET", lambdaIntegration, options);  // GET /items
-            items.AddMethod("POST", lambdaIntegration, options); // POST /items
-            items.AddMethod("PUT", lambdaIntegration, options);  // PUT /items
-
-            // Enable CORS for the /items resource
-            EnableCors(items);
-        }
-
-        private void EnableCors(Resource items)
-        {
-            // Setup CORS for the /items resource
-            items.AddMethod("OPTIONS", new MockIntegration(new IntegrationOptions
+            var lambdaIntegration = new LambdaIntegration(lambdaFunction, new LambdaIntegrationOptions
             {
                 IntegrationResponses = new[]
                 {
@@ -67,33 +42,38 @@ namespace Cdk
                         StatusCode = "200",
                         ResponseParameters = new Dictionary<string, string>
                         {
-                            { "method.response.header.Access-Control-Allow-Headers", "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'" },
                             { "method.response.header.Access-Control-Allow-Origin", "'*'" },
-                            { "method.response.header.Access-Control-Allow-Methods", "'OPTIONS,GET,POST,PUT'" }
+                            { "method.response.header.Access-Control-Allow-Headers", "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'" },
+                            { "method.response.header.Access-Control-Allow-Methods", "'GET,POST,PUT'" }
                         }
                     }
-                },
-                PassthroughBehavior = PassthroughBehavior.NEVER,
-                RequestTemplates = new Dictionary<string, string>
-                {
-                    { "application/json", "{\"statusCode\": 200}" }
                 }
-            }), new MethodOptions
+            });
+
+            var options = new MethodOptions
             {
-                MethodResponses = new[]
-                {
+                AuthorizationType = AuthorizationType.NONE,
+                MethodResponses = new[] {
                     new MethodResponse
                     {
                         StatusCode = "200",
                         ResponseParameters = new Dictionary<string, bool>
                         {
-                            { "method.response.header.Access-Control-Allow-Headers", true },
                             { "method.response.header.Access-Control-Allow-Origin", true },
+                            { "method.response.header.Access-Control-Allow-Headers", true },
                             { "method.response.header.Access-Control-Allow-Methods", true }
                         }
                     }
                 }
-            });
+            };
+
+            // Create /items resource
+            var items = api.Root.AddResource("items");
+
+            // Add methods for /items resource (GET, POST, PUT)
+            items.AddMethod("GET", lambdaIntegration, options);  // GET /items
+            items.AddMethod("POST", lambdaIntegration, options); // POST /items
+            items.AddMethod("PUT", lambdaIntegration, options);  // PUT /items
         }
     }
 }

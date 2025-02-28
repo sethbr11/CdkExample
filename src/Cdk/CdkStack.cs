@@ -22,17 +22,17 @@ namespace Cdk
         internal CdkStack(Construct scope, string id, IStackProps props = null) : base(scope, id, props)
         {
             // Define stack resources
-            var bucket = new StorageStack(this);
+            var bucket = new StorageDistStack(this);
             var table = new DatabaseStack(this);
             var lambdaFunction = new LambdaStack(this, table.Table);
             var api = new ApiGatewayStack(this, lambdaFunction.Function);
             new PipelineStack(this, bucket.Bucket);
 
-            // Outputs for CloudFront, Lambda, API Gateway, and S3
+            // Outputs for CloudFront, Lambda, and S3
             new CfnOutput(this, "CloudFrontURL", new CfnOutputProps { Value = bucket.Distribution.DistributionDomainName });
             new CfnOutput(this, "LambdaFunctionName", new CfnOutputProps { Value = lambdaFunction.Function.FunctionName });
-            new CfnOutput(this, "ApiGatewayURL", new CfnOutputProps { Value = api.Api.Url });
             new CfnOutput(this, "S3BucketURL", new CfnOutputProps { Value = bucket.Bucket.BucketWebsiteUrl });
+            //new CfnOutput(this, "ApiGatewayURL", new CfnOutputProps { Value = api.Api.Url }); // This is already outputted in the ApiGatewayStack
         }
     }
 }
